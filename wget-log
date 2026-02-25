@@ -1,7 +1,6 @@
-start at 2026-01-02 20:17:26
+start at 2026-02-01 23:02:09
 sending request, awaiting response...status 200 OK
-content size: -1 bytes [~-0.00MB]
-saving file to: ./__down
+saving file to: ./bg.bin
 
-Downloaded 5000000 bytes to __down
-finished at 2026-01-02 20:17:26
+Downloaded 5000000 bytes to bg.bin
+finished at 2026-02-01 23:02:09
