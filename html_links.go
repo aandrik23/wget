@@ -57,6 +57,11 @@ func ExtractLinksFromHTML(r io.Reader, base *url.URL) ([]FoundLink, error) {
 	return out, nil
 }
 
+// Helper: parse bytes as reader
+func ExtractLinksFromBytes(b []byte, base *url.URL) ([]FoundLink, error) {
+	return ExtractLinksFromHTML(bytes.NewReader(b), base)
+}
+
 func getAttr(n *html.Node, key string) (string, bool) {
 	for _, a := range n.Attr {
 		if strings.EqualFold(a.Key, key) {
@@ -71,7 +76,7 @@ func getAttr(n *html.Node, key string) (string, bool) {
 }
 
 func addLink(out *[]FoundLink, base *url.URL, tag, attr, raw string) {
-	// Ignore anchors and javascript/mailto
+	// Ignore anchors and javascript
 	if strings.HasPrefix(raw, "#") {
 		return
 	}
@@ -101,9 +106,4 @@ func addLink(out *[]FoundLink, base *url.URL, tag, attr, raw string) {
 		Attr:     attr,
 		Original: raw,
 	})
-}
-
-// Helper: parse bytes as reader
-func ExtractLinksFromBytes(b []byte, base *url.URL) ([]FoundLink, error) {
-	return ExtractLinksFromHTML(bytes.NewReader(b), base)
 }

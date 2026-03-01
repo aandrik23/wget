@@ -64,7 +64,7 @@ func downloadFileSimple(urlStr, savePath string, logger io.Writer) error {
 	if err != nil {
 		return fmt.Errorf("create request: %w", err)
 	}
-	req.Header.Set("User-Agent", "mywget/1.0")
+	req.Header.Set("User-Agent", "wget/1.0")
 	req.Header.Set("Accept", "*/*")
 
 	fmt.Fprint(logger, "sending request, awaiting response...")

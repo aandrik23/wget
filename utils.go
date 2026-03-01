@@ -1,39 +1,59 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
+	"net/url"
+	"os"
+	"path"
+	"path/filepath"
 	"strings"
-	"time"
 )
 
-// Now returns the current time, it's a helper function for easier testing.
-func Now() time.Time {
-	return time.Now()
-}
-
-// NowString returns the current time in string format.
-func NowString() string {
-	return time.Now().Format("2006-01-02 15:04:05")
-}
-
-// Trim spaces etc from the start and end of a string.
-func Trim(s string) string {
-	return strings.TrimSpace(s)
-}
-
-// SplitCSV splits a comma-separated string into a slice of strings, trimming spaces and removes empty items.
-func SplitCSV(s string) []string {
-	s = strings.TrimSpace(s)
-	if s == "" {
-		return nil
+func readLines(file string) ([]string, error) {
+	f, err := os.Open(file)
+	if err != nil {
+		return nil, err
 	}
+	defer f.Close()
 
-	parts := strings.Split(s, ",")
-	out := make([]string, 0, len(parts))
-	for _, p := range parts {
-		p = strings.TrimSpace(p)
-		if p != "" {
-			out = append(out, p)
+	var out []string
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
 		}
+		out = append(out, line)
 	}
-	return out
+	if err := sc.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func filenameFromURL(rawURL string) string {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return "downloaded_file"
+	}
+
+	name := path.Base(u.Path)
+	if name == "" || name == "/" || name == "." {
+		name = "downloaded_file"
+	}
+
+	// If name is empty/generic, try to add query info for uniqueness
+	if q := u.RawQuery; q != "" {
+		// safe-ish suffix
+		suffix := strings.NewReplacer("&", "_", "=", "_", "?", "_").Replace(q)
+		if len(suffix) > 40 {
+			suffix = suffix[:40]
+		}
+		ext := filepath.Ext(name)
+		base := strings.TrimSuffix(name, ext)
+		return fmt.Sprintf("%s_%s%s", base, suffix, ext)
+	}
+
+	return name
 }

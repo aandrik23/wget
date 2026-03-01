@@ -42,7 +42,7 @@ func (p *Progress) ShouldPrint() bool {
 	return time.Since(p.lastPrint) >= p.printEvery
 }
 
-// Print prints one progress line (updates same terminal line).
+// prints one progress line (updates same terminal line).
 func (p *Progress) Print(w io.Writer) {
 	p.lastPrint = time.Now()
 
