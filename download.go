@@ -28,6 +28,9 @@ func downloadOne(rawURL, outName, outDir string, rateLimitBytesPerSec float64, b
 	defer resp.Body.Close()
 
 	fmt.Fprintf(logger, "status %d %s\n", resp.StatusCode, http.StatusText(resp.StatusCode))
+	size := resp.ContentLength
+	mb := float64(size) / (1024 * 1024)
+	fmt.Fprintf(logger, "content size: %d [~%.2fMB]\n", size, mb)
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("request failed with status: %s", resp.Status)
 	}
@@ -93,7 +96,7 @@ func downloadOne(rawURL, outName, outDir string, rateLimitBytesPerSec float64, b
 		progress.Finish(os.Stdout)
 	}
 
-	fmt.Fprintf(logger, "Downloaded %d bytes to %s\n", progress.downloaded, savePath)
+	fmt.Fprintf(logger, "Downloaded [%s]\n", rawURL)
 	fmt.Fprintf(logger, "finished at %s\n", time.Now().Format("2006-01-02 15:04:05"))
 	return nil
 }

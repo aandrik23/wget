@@ -68,13 +68,10 @@ func MirrorSiteStep2(rawURL string, logger io.Writer) error {
 			continue
 		}
 
-		links, err := ExtractLinksFromBytes(b, u)
-		if err != nil {
-			continue
-		}
+		links := ExtractLinksFromBytes(u, b)
 
 		for _, l := range links {
-			linkURL, err := url.Parse(l.URL)
+			linkURL, err := url.Parse(l)
 			if err != nil {
 				continue
 			}

@@ -2,108 +2,78 @@ package main
 
 import (
 	"bytes"
-	"fmt"
-	"io"
 	"net/url"
 	"strings"
 
 	"golang.org/x/net/html"
 )
 
-type FoundLink struct {
-	URL      string // absolute URL
-	Tag      string // a / img / link
-	Attr     string // href / src
-	Original string // original attribute value (as found)
+func ExtractLinksFromBytes(pageURL *url.URL, body []byte) []string {
+	doc, err := html.Parse(bytes.NewReader(body))
+	if err != nil {
+		return nil
+	}
+	return ExtractLinksFromHTML(pageURL, doc)
 }
 
-// ExtractLinksFromHTML parses HTML and extracts URLs from:
+// ExtractLinksFromHTML walks the HTML tree and returns absolute URLs found in:
 // - a[href]
-// - img[src]
 // - link[href]
-func ExtractLinksFromHTML(r io.Reader, base *url.URL) ([]FoundLink, error) {
-	doc, err := html.Parse(r)
-	if err != nil {
-		return nil, fmt.Errorf("html parse: %w", err)
-	}
+// - img[src]
+// - script[src]        <-- IMPORTANT for many sites
+// - source[src]        <-- useful for audio/video
+// - audio[src], video[src] (optional but harmless)
+func ExtractLinksFromHTML(pageURL *url.URL, n *html.Node) []string {
+	var out []string
 
-	var out []FoundLink
+	var walk func(*html.Node)
+	walk = func(node *html.Node) {
+		if node.Type == html.ElementNode {
+			tag := strings.ToLower(node.Data)
 
-	var walk func(n *html.Node)
-	walk = func(n *html.Node) {
-		if n.Type == html.ElementNode {
-			switch n.Data {
-			case "a":
-				if v, ok := getAttr(n, "href"); ok {
-					addLink(&out, base, "a", "href", v)
-				}
-			case "img":
-				if v, ok := getAttr(n, "src"); ok {
-					addLink(&out, base, "img", "src", v)
-				}
-			case "link":
-				if v, ok := getAttr(n, "href"); ok {
-					addLink(&out, base, "link", "href", v)
+			// Decide which attribute we want to read based on the tag
+			var attrName string
+			switch tag {
+			case "a", "link":
+				attrName = "href"
+			case "img", "script", "source", "audio", "video":
+				attrName = "src"
+			}
+
+			if attrName != "" {
+				for _, a := range node.Attr {
+					if strings.ToLower(a.Key) != attrName {
+						continue
+					}
+					raw := strings.TrimSpace(a.Val)
+					if raw == "" {
+						continue
+					}
+
+					// Ignore anchors and non-http(s) stuff
+					if strings.HasPrefix(raw, "#") ||
+						strings.HasPrefix(raw, "mailto:") ||
+						strings.HasPrefix(raw, "javascript:") ||
+						strings.HasPrefix(raw, "data:") {
+						continue
+					}
+
+					ref, err := url.Parse(raw)
+					if err != nil {
+						continue
+					}
+
+					abs := pageURL.ResolveReference(ref)
+					out = append(out, abs.String())
 				}
 			}
 		}
 
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
+		for c := node.FirstChild; c != nil; c = c.NextSibling {
 			walk(c)
 		}
 	}
 
-	walk(doc)
-	return out, nil
-}
-
-// Helper: parse bytes as reader
-func ExtractLinksFromBytes(b []byte, base *url.URL) ([]FoundLink, error) {
-	return ExtractLinksFromHTML(bytes.NewReader(b), base)
-}
-
-func getAttr(n *html.Node, key string) (string, bool) {
-	for _, a := range n.Attr {
-		if strings.EqualFold(a.Key, key) {
-			val := strings.TrimSpace(a.Val)
-			if val == "" {
-				return "", false
-			}
-			return val, true
-		}
-	}
-	return "", false
-}
-
-func addLink(out *[]FoundLink, base *url.URL, tag, attr, raw string) {
-	// Ignore anchors and javascript
-	if strings.HasPrefix(raw, "#") {
-		return
-	}
-	if strings.HasPrefix(strings.ToLower(raw), "javascript:") {
-		return
-	}
-	if strings.HasPrefix(strings.ToLower(raw), "mailto:") {
-		return
-	}
-	if strings.HasPrefix(strings.ToLower(raw), "tel:") {
-		return
-	}
-	if strings.HasPrefix(strings.ToLower(raw), "data:") {
-		return
-	}
-
-	u, err := url.Parse(raw)
-	if err != nil {
-		return
-	}
-
-	abs := base.ResolveReference(u)
-
-	*out = append(*out, FoundLink{
-		URL:      abs.String(),
-		Tag:      tag,
-		Attr:     attr,
-		Original: raw,
-	})
+	walk(n)
+	return out
 }
