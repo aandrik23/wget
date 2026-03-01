@@ -59,7 +59,7 @@ func (p *Progress) Print(w io.Writer) {
 
 	// If total size is unknown, we can only show downloaded + speed.
 	if p.unknownTotal {
-		fmt.Fprintf(w, "\rDownloaded %.2f MiB  %.2f MiB/s", downloadedMiB, speedMiBPerSec)
+		fmt.Fprintf(w, "\rDownloaded %.2f MiB  %.2f MiB/s\033[K", downloadedMiB, speedMiBPerSec)
 		return
 	}
 
@@ -83,7 +83,7 @@ func (p *Progress) Print(w io.Writer) {
 
 	fmt.Fprintf(
 		w,
-		"\r%.2f MiB / %.2f MiB %s %.2f%%  %.2f MiB/s  %ds",
+		"\r%.2f MiB / %.2f MiB %s %.2f%%  %.2f MiB/s  %ds\033[K",
 		downloadedMiB, totalMiB, bar, percent, speedMiBPerSec, int(etaSeconds),
 	)
 }
