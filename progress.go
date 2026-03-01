@@ -24,7 +24,7 @@ func NewProgress(totalBytes int64) *Progress {
 		start:      time.Now(),
 		lastPrint:  time.Now(),
 		printEvery: 100 * time.Millisecond,
-		barWidth:   50,
+		barWidth:   30,
 	}
 	if totalBytes <= 0 {
 		p.unknownTotal = true
